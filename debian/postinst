@@ -1,0 +1,13 @@
+#!/bin/bash
+# postinst script for indi-mqtt
+
+# install requirement
+if [ -n "$(which pip3)" ]
+then
+    pip3 install -y --no-warn-script-location --upgrade pyindi-client
+fi
+
+# enable and start service
+systemctl enable indi-mqtt.service
+systemctl start indi-mqtt.service
+

@@ -1,0 +1,10 @@
+os
+sys
+time
+logging
+signal
+json
+configparser
+argparse
+paho.mqtt.publish
+PyIndi

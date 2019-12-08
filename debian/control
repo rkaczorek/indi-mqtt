@@ -1,0 +1,13 @@
+Source: indi-mqtt
+Section: misc
+Priority: optional
+Maintainer: Radek Kaczorek <rkaczorek@gmail.com>
+Build-Depends: debhelper (>= 9), cdbs, cmake (>= 2.4.7), cmake
+Standards-Version: 3.9.1
+Homepage: https://github.com/rkaczorek/indi-mqtt
+
+Package: indi-mqtt
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3-paho-mqtt, python3-simplejson
+Recommends: mosquitto, indi-bin
+Description: MQTT publisher for INDI server

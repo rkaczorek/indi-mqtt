@@ -1,0 +1,5 @@
+#!/bin/bash
+# prerm script for indi-mqtt
+
+systemctl stop indi-mqtt.service
+systemctl disable indi-mqtt.service

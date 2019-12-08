@@ -1,0 +1,14 @@
+# File to be placed under /etc/systemd/system/
+[Unit]
+Description=INDI MQTT
+After=multi-user.target
+
+[Service]
+Type=idle
+User=nobody
+ExecStart=/usr/bin/python3 /usr/bin/indi-mqtt.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

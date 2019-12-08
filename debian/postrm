@@ -1,0 +1,8 @@
+#!/bin/bash
+# postrm script for indi-mqtt
+
+# remove requirement
+if [ -n "$(which pip3)" ]
+then
+    pip3 uninstall -y pyindi-client
+fi
