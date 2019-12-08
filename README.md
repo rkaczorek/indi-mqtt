@@ -20,13 +20,17 @@ sudo apt install --no-install-recommends indi-mqtt
 ```
 
 Note 1: To install indi-mqtt with apt you need to add repository available on https://www.astroberry.io/
+
 Note 2: If you want to install mosquitto server along indi-mqtt remove --no-install-recommends from the command line above
 
 # Configuration
-Configuration file for indi-mqtt is located in /etc/indi-mqtt.conf
+Default configuration file for indi-mqtt is located in /etc/indi-mqtt.conf
 
 # Help
-To get help run: python3 /usr/bin/indi-mqtt -h
+To get help run:
+```
+python3 /usr/bin/indi-mqtt -h
+```
 
 # Issues
 File any issues on https://github.com/rkaczorek/indi-mqtt/issues
