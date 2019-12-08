@@ -95,7 +95,8 @@ if os.path.isfile(CONFIG_FILE):
 		if 'MQTT_POLLING' in config['MQTT']:
 			MQTT_POLLING = int(config['MQTT']['MQTT_POLLING'])
 		if 'MQTT_JSON' in config['MQTT']:
-			MQTT_JSON = config['MQTT']['MQTT_JSON']
+			if config['MQTT']['MQTT_JSON'].lower() == 'true':
+				MQTT_JSON = True
 
 if args.indi_host:
 	INDI_HOST = args.indi_host
@@ -119,7 +120,7 @@ def strISState(s):
 	if (s == PyIndi.ISS_OFF):
 		return "OFF"
 	else:
-		return "ON"  
+		return "ON"
 
 def strIPState(s):
 	if (s == PyIndi.IPS_IDLE):
@@ -259,8 +260,6 @@ def sendMQTT(observatory_json):
 		# Publish entire json
 		if MQTT_JSON:
 			publish.single(MQTT_ROOT.lower() + "/json", json.dumps(observatory_json), hostname=MQTT_HOST, port=MQTT_PORT)
-			if VERBOSE:
-				indiclient.logger.info("Publish MQTT message to " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 		# Publish properties and values
 		for device in observatory_json:
@@ -273,6 +272,9 @@ def sendMQTT(observatory_json):
 					if DEBUG:
 						print(topic.lower(), payload, sep=" = ")
 					publish.single(topic.lower(), payload, hostname=MQTT_HOST, port=MQTT_PORT)
+		if VERBOSE:
+			indiclient.logger.info("Publish MQTT message to " + MQTT_HOST + ":" + str(MQTT_PORT))
+
 	except:
 		if VERBOSE:
 			indiclient.logger.info("MQTT server not available on " + MQTT_HOST + ":" + str(MQTT_PORT))
@@ -280,7 +282,7 @@ def sendMQTT(observatory_json):
 # register term handler
 signal.signal(signal.SIGTERM, term_handler)
 
-if __name__ == '__main__':	
+if __name__ == '__main__':
 	# Create an instance of the IndiClient class and initialize its host/port members
 	indiclient = IndiClient()
 	indiclient.setServer(INDI_HOST,INDI_PORT)
@@ -295,7 +297,7 @@ if __name__ == '__main__':
 					time.sleep(INDI_RECONNECT)
 				except KeyboardInterrupt:
 					shutdown()
-			
+
 			# Wait 1s after connection
 			time.sleep(1)
 
@@ -303,7 +305,7 @@ if __name__ == '__main__':
 				try:
 					# Get all devices
 					devices = indiclient.getDevices()
-					
+
 					# Get properties and their associated values for all devices
 					observatory_json = getJSON(devices)
 

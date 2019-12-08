@@ -4,7 +4,7 @@
 # install requirement
 if [ -n "$(which pip3)" ]
 then
-    pip3 install -y --no-warn-script-location --upgrade pyindi-client
+    pip3 install --no-warn-script-location --upgrade pyindi-client
 fi
 
 # enable and start service
