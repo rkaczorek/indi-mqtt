@@ -9,6 +9,7 @@ In the meantime you can install pyindi-client by running:
 wget https://files.pythonhosted.org/packages/a7/4d/9ae15f572822c2fac5d6756570b205bdf578c80be24e274947ac74962873/pyindi-client-0.2.3.tar.gz
 tar zxvf pyindi-client-0.2.3.tar.gz
 cd pyindi-client
+nano indiclientpython.i    --- ADD THIS LINE AT THE TOP OF THE FILE: %include "stdint.i"
 sudo python3 setup.py install
 ```
 
