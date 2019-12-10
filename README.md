@@ -6,7 +6,7 @@ Install pyindi-client **before** installing indi-mqtt. Normally it is installed 
 However official pyindi-client installable by pip contains a bug, which hopefully will be removed soon.
 In the meantime you can install pyindi-client by running:
 ```
-apt install python-setuptools python-dev libindi-dev swig libcfitsio-dev libnova-dev
+sudo apt install python-setuptools python-dev libindi-dev swig libcfitsio-dev libnova-dev
 wget https://files.pythonhosted.org/packages/a7/4d/9ae15f572822c2fac5d6756570b205bdf578c80be24e274947ac74962873/pyindi-client-0.2.3.tar.gz
 tar zxvf pyindi-client-0.2.3.tar.gz
 cd pyindi-client
