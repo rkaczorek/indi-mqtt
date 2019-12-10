@@ -30,7 +30,7 @@ Default configuration file for indi-mqtt is located in /etc/indi-mqtt.conf
 # Help
 To get help run:
 ```
-python3 /usr/bin/indi-mqtt -h
+python3 /usr/bin/indi-mqtt.py -h
 ```
 
 # Issues
