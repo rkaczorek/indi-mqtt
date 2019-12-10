@@ -4,5 +4,5 @@
 # remove requirement
 if [ -n "$(which pip3)" ] && [ "$1" = "remove" -o "$1" = "purge" ]
 then
-    pip3 uninstall pyindi-client
+    pip3 uninstall -y pyindi-client
 fi
