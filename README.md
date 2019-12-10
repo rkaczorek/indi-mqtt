@@ -20,6 +20,11 @@ To get help run:
 python3 /usr/bin/indi-mqtt.py -h
 ```
 
+# FAQ
+**Q: I'm not using Astroberry but want to use indi-mqtt. Can I?**
+
+A: Yes you can. Download a package from https://www.astroberry.io/repo/pool/main/i/indi-mqtt/ and install it manually with sudo dpkg -i indi-mqtt_1.0.0_all.deb
+
 # Issues
 File any issues on https://github.com/rkaczorek/indi-mqtt/issues
 
