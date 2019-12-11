@@ -6,7 +6,8 @@ After=multi-user.target
 [Service]
 Type=idle
 User=nobody
-ExecStart=/usr/bin/python3 /usr/bin/indi-mqtt.py 2>/dev/null
+StandardError=null
+ExecStart=/usr/bin/python3 /usr/bin/indi-mqtt.py
 Restart=always
 RestartSec=10
 
