@@ -2,7 +2,7 @@ indi-mqtt (1.0.1) buster; urgency=medium
 
   * Improve logging and INDI connection handling
 
- -- Radek Kaczorek <rkaczorek@gmail.com>  Wed, 11 Dec 2019 02:55:41 +0100
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Wed, 11 Dec 2019 03:09:28 +0100
 
 indi-mqtt (1.0.0) buster; urgency=medium
 
