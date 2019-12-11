@@ -29,9 +29,9 @@ import argparse
 __author__ = 'Radek Kaczorek'
 __copyright__ = 'Copyright 2019, Radek Kaczorek'
 __license__ = 'GPL-3'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+logger = logging.getLogger('INDI MQTT')
 
 # Default options
 VERBOSE = False
@@ -53,6 +53,7 @@ MQTT_JSON = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c ", "--config", help="configuration file path (default = /etc/indi-mqtt.conf)")
+parser.add_argument("--log", help="log file path (default = stdout)")
 parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 parser.add_argument("-d", "--debug", help="enable debugging", action="store_true")
 parser.add_argument("-l", "--list_topics", help="list available MQTT topics", action="store_true")
@@ -68,18 +69,18 @@ args = parser.parse_args()
 
 if args.config:
 	CONFIG_FILE = args.config
-if args.verbose:
-	VERBOSE = True
-if args.debug:
-	DEBUG = True
-if args.list_topics:
-	LIST_TOPICS = True
+
+if args.log:
+	logging.basicConfig(format='%(asctime)s:%(name)s:%(message)s', level=logging.INFO, filename=args.log, filemode='a')
+else:
+	logging.basicConfig(format='%(asctime)s:%(name)s:%(message)s', level=logging.INFO, stream=sys.stdout)
 
 if os.path.isfile(CONFIG_FILE):
-		if VERBOSE:
-			print("Using configuration from " + CONFIG_FILE)
 		config = configparser.ConfigParser()
 		config.read(CONFIG_FILE)
+		if 'VERBOSE' in config['DEFAULT']:
+			if config['DEFAULT']['VERBOSE'].lower() == 'true':
+				VERBOSE = True
 		if 'INDI_HOST' in config['INDI']:
 			INDI_HOST = config['INDI']['INDI_HOST']
 		if 'INDI_PORT' in config['INDI']:
@@ -97,7 +98,15 @@ if os.path.isfile(CONFIG_FILE):
 		if 'MQTT_JSON' in config['MQTT']:
 			if config['MQTT']['MQTT_JSON'].lower() == 'true':
 				MQTT_JSON = True
+		if VERBOSE:
+			logger.info("Using configuration from " + CONFIG_FILE)
 
+if args.verbose:
+	VERBOSE = True
+if args.debug:
+	DEBUG = True
+if args.list_topics:
+	LIST_TOPICS = True
 if args.indi_host:
 	INDI_HOST = args.indi_host
 if args.indi_port:
@@ -179,10 +188,8 @@ def term_handler(signum, frame):
 class IndiClient(PyIndi.BaseClient):
 	def __init__(self):
 		super(IndiClient, self).__init__()
-		self.logger = logging.getLogger('__name__')
-		self.isConnected = False
 		if VERBOSE:
-			self.logger.info('Creating an instance of INDI client')
+			logger.info('Creating an instance of INDI client')
 	def newDevice(self, d):
 		pass
 	def newProperty(self, p):
@@ -202,13 +209,11 @@ class IndiClient(PyIndi.BaseClient):
 	def newMessage(self, d, m):
 		pass
 	def serverConnected(self):
-		self.isConnected = True
 		if VERBOSE:
-			self.logger.info("INDI server connected to " + self.getHost() + ":" + str(self.getPort()))
+			logger.info("INDI server connected to " + self.getHost() + ":" + str(self.getPort()))
 	def serverDisconnected(self, code):
-		self.isConnected = False
 		if VERBOSE:
-			self.logger.info("INDI server disconnected from " + str(self.getHost()) + ":" + str(self.getPort()))
+			logger.info("INDI server disconnected from " + str(self.getHost()) + ":" + str(self.getPort()))
 
 def getJSON(devices):
 	# Construct json {device:{property:value, property, value}, device:{property:value, property, value}}
@@ -273,11 +278,11 @@ def sendMQTT(observatory_json):
 						print(topic.lower(), payload, sep=" = ")
 					publish.single(topic.lower(), payload, hostname=MQTT_HOST, port=MQTT_PORT)
 		if VERBOSE:
-			indiclient.logger.info("Publish MQTT message to " + MQTT_HOST + ":" + str(MQTT_PORT))
+			logger.info("Publish message to " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 	except:
 		if VERBOSE:
-			indiclient.logger.info("MQTT server not available on " + MQTT_HOST + ":" + str(MQTT_PORT))
+			logger.info("MQTT server not available on " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 # register term handler
 signal.signal(signal.SIGTERM, term_handler)
@@ -288,33 +293,31 @@ if __name__ == '__main__':
 	indiclient.setServer(INDI_HOST,INDI_PORT)
 
 	while True:
-		try:
-			# Connect to INDI server or loop forever until INDI server available
-			while not indiclient.connectServer():
-				try:
+		# Connect to INDI server or loop forever until INDI server available
+		while not indiclient.isServerConnected():
+			try:
+				if not indiclient.connectServer():
 					if VERBOSE:
-						indiclient.logger.info("INDI server not available on " + indiclient.getHost() + ":" + str(indiclient.getPort()) + ". Retrying in " + str(INDI_RECONNECT) + " seconds")
+						logger.info("INDI server not available on " + indiclient.getHost() + ":" + str(indiclient.getPort()) + ". Retrying in " + str(INDI_RECONNECT) + " seconds")
 					time.sleep(INDI_RECONNECT)
-				except KeyboardInterrupt:
-					shutdown()
+			except KeyboardInterrupt:
+				shutdown()
 
-			# Wait 1s after connection
-			time.sleep(1)
+		# Wait 1s after connection
+		time.sleep(1)
 
-			while indiclient.isConnected:
-				try:
-					# Get all devices
-					devices = indiclient.getDevices()
+		while indiclient.isServerConnected():
+			try:
+				# Get all devices
+				devices = indiclient.getDevices()
 
-					# Get properties and their associated values for all devices
-					observatory_json = getJSON(devices)
+				# Get properties and their associated values for all devices
+				observatory_json = getJSON(devices)
 
-					# Send MQTT message
-					sendMQTT(observatory_json)
+				# Send MQTT message
+				sendMQTT(observatory_json)
 
-					# Loop every n seconds
-					time.sleep(MQTT_POLLING)
-				except KeyboardInterrupt:
-					shutdown()
-		except KeyboardInterrupt:
-			shutdown()
+				# Loop every n seconds
+				time.sleep(MQTT_POLLING)
+			except KeyboardInterrupt:
+				shutdown()
