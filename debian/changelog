@@ -1,3 +1,9 @@
+indi-mqtt (1.0.2) buster; urgency=medium
+
+  * Fix dependencies
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Sat, 01 Feb 2020 21:49:42 +0100
+
 indi-mqtt (1.0.1) buster; urgency=medium
 
   * Improve logging and INDI connection handling
