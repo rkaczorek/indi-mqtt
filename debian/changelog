@@ -1,3 +1,9 @@
+indi-mqtt (1.0.4) buster; urgency=medium
+
+  * MQTT manual polling added
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Sat, 30 May 2020 22:55:26 +0200
+
 indi-mqtt (1.0.3) buster; urgency=medium
 
   * MQTT authentication added - Closes #8
