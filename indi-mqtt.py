@@ -21,17 +21,19 @@ Boston, MA 02110-1301, USA.
 
 import os, sys, time, logging, configparser
 import PyIndi
-import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
 import signal
 import json
 import argparse
+import random
+import string
 
 __author__ = 'Radek Kaczorek'
 __copyright__ = 'Copyright 2019, Radek Kaczorek'
 __license__ = 'GPL-3'
-__version__ = '1.0.1'
+__version__ = '1.0.3'
 
-logger = logging.getLogger('INDI MQTT')
+logger = logging.getLogger('indi-mqtt')
 
 # Default options
 VERBOSE = False
@@ -42,12 +44,14 @@ CONFIG_FILE = "/etc/indi-mqtt.conf"
 # INDI
 INDI_HOST = 'localhost'
 INDI_PORT = 7624
-INDI_RECONNECT = 30
+INDI_RECONNECT = 10
 
 # MQTT
 MQTT_HOST = 'localhost'
 MQTT_PORT = 1883
-MQTT_ROOT = 'OBSERVATORY'
+MQTT_USER = None
+MQTT_PASS = None
+MQTT_ROOT = 'observatory'
 MQTT_POLLING = 10
 MQTT_JSON = False
 
@@ -63,7 +67,9 @@ parser.add_argument("--indi_port", help="INDI server port number (default = 7624
 parser.add_argument("--indi_reconnect", help="INDI server reconnect time in seconds (default = 10)")
 parser.add_argument("--mqtt_host", help="MQTT server hostname or IP (default = localhost)")
 parser.add_argument("--mqtt_port", help="MQTT server port number (default = 1883)")
-parser.add_argument("--mqtt_root", help="MQTT root topic name (default = OBSERVATORY)")
+parser.add_argument("--mqtt_user", help="MQTT server username (default = none)")
+parser.add_argument("--mqtt_pass", help="MQTT server password (default = none)")
+parser.add_argument("--mqtt_root", help="MQTT root topic name (default = observatory)")
 parser.add_argument("--mqtt_polling", help="MQTT polling time in seconds (default = 10)")
 args = parser.parse_args()
 
@@ -91,6 +97,10 @@ if os.path.isfile(CONFIG_FILE):
 			MQTT_HOST = config['MQTT']['MQTT_HOST']
 		if 'MQTT_PORT' in config['MQTT']:
 			MQTT_PORT = int(config['MQTT']['MQTT_PORT'])
+		if 'MQTT_USER' in config['MQTT']:
+			MQTT_USER = config['MQTT']['MQTT_USER']
+		if 'MQTT_PASS' in config['MQTT']:
+			MQTT_PASS = config['MQTT']['MQTT_PASS']
 		if 'MQTT_ROOT' in config['MQTT']:
 			MQTT_ROOT = config['MQTT']['MQTT_ROOT']
 		if 'MQTT_POLLING' in config['MQTT']:
@@ -117,12 +127,22 @@ if args.mqtt_host:
 	MQTT_HOST = args.mqtt_host
 if args.mqtt_port:
 	MQTT_PORT = int(args.mqtt_port)
+if args.mqtt_user:
+	MQTT_USER = args.mqtt_user
+if args.mqtt_pass:
+	MQTT_PASS = args.mqtt_pass
 if args.mqtt_root:
 	MQTT_ROOT = args.mqtt_root
 if args.mqtt_polling:
 	MQTT_POLLING = int(args.mqtt_polling)
 if args.mqtt_json:
 	MQTT_JSON = True
+
+# if user/pass available prepare auth data
+if MQTT_USER and MQTT_PASS:
+	MQTT_AUTH = {'username': MQTT_USER, 'password': MQTT_PASS}
+else:
+	MQTT_AUTH = None
 
 # INDI states
 def strISState(s):
@@ -177,6 +197,8 @@ def strDeviceType(s):
 		return "AUX"
 
 def shutdown():
+	indiclient.disconnectServer()
+	mqttclient.disconnect()
 	print('Exiting\nGood Bye.\n')
 	sys.exit()
 
@@ -210,10 +232,10 @@ class IndiClient(PyIndi.BaseClient):
 		pass
 	def serverConnected(self):
 		if VERBOSE:
-			logger.info("INDI server connected to " + self.getHost() + ":" + str(self.getPort()))
+			logger.info("Connected to INDI server " + self.getHost() + ":" + str(self.getPort()))
 	def serverDisconnected(self, code):
 		if VERBOSE:
-			logger.info("INDI server disconnected from " + str(self.getHost()) + ":" + str(self.getPort()))
+			logger.info("Disconnected from INDI server " + str(self.getHost()) + ":" + str(self.getPort()))
 
 def getJSON(devices):
 	# Construct json {device:{property:value, property, value}, device:{property:value, property, value}}
@@ -264,7 +286,7 @@ def sendMQTT(observatory_json):
 	try:
 		# Publish entire json
 		if MQTT_JSON:
-			publish.single(MQTT_ROOT.lower() + "/json", json.dumps(observatory_json), hostname=MQTT_HOST, port=MQTT_PORT)
+			mqttclient.publish(MQTT_ROOT.lower() + "/json", json.dumps(observatory_json))
 
 		# Publish properties and values
 		for device in observatory_json:
@@ -276,18 +298,64 @@ def sendMQTT(observatory_json):
 						print(topic.lower())
 					if DEBUG:
 						print(topic.lower(), payload, sep=" = ")
-					publish.single(topic.lower(), payload, hostname=MQTT_HOST, port=MQTT_PORT)
+					msg = mqttclient.publish(topic.lower(), payload)
 		if VERBOSE:
-			logger.info("Publish message to " + MQTT_HOST + ":" + str(MQTT_PORT))
-
+			if msg.rc == 0:
+				logger.info("Message published to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+			else:
+				logger.info("Error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
 	except:
 		if VERBOSE:
-			logger.info("MQTT server not available on " + MQTT_HOST + ":" + str(MQTT_PORT))
+			logger.info("Unexpected error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + " : " + e)
+
+def ClientIdMQTT(stringLength=18):
+    lettersAndDigits = string.ascii_letters + string.digits
+    return ''.join((random.choice(lettersAndDigits) for i in range(stringLength)))
+
+def onConnectMQTT(client, userdata, flags, rc):
+	if VERBOSE:
+		if rc == 0:
+			logger.info("Connected to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+
+def onDisconnectMQTT(client, userdata, rc):
+	if VERBOSE:
+		if rc == 0:
+			logger.info("Disconnected from MQTT server  " + MQTT_HOST + ":" + str(MQTT_PORT))
+		if rc == 5:
+			logger.info("Access denied to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + ". Check username and password") 
+		else:
+			logger.info("Connection lost to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 # register term handler
 signal.signal(signal.SIGTERM, term_handler)
 
 if __name__ == '__main__':
+	# Create MQTT client instance
+	mqttclientid = "indi-mqtt-" + ClientIdMQTT()
+	mqttclient = mqtt.Client(client_id = mqttclientid, clean_session = True)
+	if VERBOSE:
+		logger.info('Creating an instance of MQTT client')
+
+	mqttclient.reconnect_delay_set(min_delay=1, max_delay=60)
+	mqttclient.username_pw_set(MQTT_USER, MQTT_PASS)
+	mqttclient.on_connect = onConnectMQTT
+	mqttclient.on_disconnect = onDisconnectMQTT
+
+	# Try connecting to MQTT server or loop until MQTT server is available
+	while True:
+		try:
+			mqttclient.connect(MQTT_HOST, MQTT_PORT, 60)
+			break
+		except KeyboardInterrupt:
+			shutdown()
+		except:
+			if VERBOSE:
+				logger.info("MQTT server at " + MQTT_HOST + ":" + str(MQTT_PORT) + " not available. Retrying in 10 seconds")
+			time.sleep(10)
+			continue
+
+	mqttclient.loop_start()
+
 	# Create an instance of the IndiClient class and initialize its host/port members
 	indiclient = IndiClient()
 	indiclient.setServer(INDI_HOST,INDI_PORT)
@@ -297,8 +365,10 @@ if __name__ == '__main__':
 		while not indiclient.isServerConnected():
 			try:
 				if not indiclient.connectServer():
+					# Set observatory status
+					mqttclient.publish(MQTT_ROOT.lower() + "/status", "OFF")
 					if VERBOSE:
-						logger.info("INDI server not available on " + indiclient.getHost() + ":" + str(indiclient.getPort()) + ". Retrying in " + str(INDI_RECONNECT) + " seconds")
+						logger.info("INDI server at " + indiclient.getHost() + ":" + str(indiclient.getPort()) + " not available. Retrying in " + str(INDI_RECONNECT) + " seconds")
 					time.sleep(INDI_RECONNECT)
 			except KeyboardInterrupt:
 				shutdown()
@@ -307,6 +377,8 @@ if __name__ == '__main__':
 		time.sleep(1)
 
 		while indiclient.isServerConnected():
+			# Set observatory status
+			mqttclient.publish(MQTT_ROOT.lower() + "/status", "ON")
 			try:
 				# Get all devices
 				devices = indiclient.getDevices()

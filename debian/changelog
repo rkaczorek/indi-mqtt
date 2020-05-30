@@ -1,3 +1,11 @@
+indi-mqtt (1.0.3) buster; urgency=medium
+
+  * MQTT authentication added - Closes #8
+  * MQTT meaningful client name added - Closes #7
+  * Improved error handling
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Sat, 30 May 2020 15:49:18 +0200
+
 indi-mqtt (1.0.2) buster; urgency=medium
 
   * Fix dependencies
