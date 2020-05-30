@@ -14,6 +14,31 @@ Note: If you want to install mosquitto server along indi-mqtt remove --no-instal
 # Configuration
 Default configuration file for indi-mqtt is located in /etc/indi-mqtt.conf
 
+# MQTT tree
+MQTT messages published by indi-mqtt are organized in the following hierarchy:\
+__observatory/__#\
+observatory/__status__ - obervatory status (ON|OFF) - equals INDI server status\
+observatory/__json__ - all INDI properties in a single json message\
+observatory/__general/__#\
+observatory/__telescope/__#\
+observatory/__ccd/__#\
+observatory/__guider/__#\
+observatory/__focuser/__#\
+observatory/__filter/__#\
+observatory/__dome/__#\
+observatory/__gps/__#\
+observatory/__weather/__#\
+observatory/__ao/__#\
+observatory/__dustcap/__#\
+observatory/__lighbox/__#\
+observatory/__detector/__#\
+observatory/__rotator/__#\
+observatory/__spectrograph/__#\
+observatory/__aux/__#
+
+You can change 'observatory' by setting MQTT_ROOT in /etc/indi-mqtt.conf or invoking command with --mqtt_root argument.\
+__\#__ is a wildcard selector, which returns all properties subsequent to path. If you want to access specific property, use full path e.g. ```observatory/telescope/telescope_info/telescope_focal_length``` will give you info about focal length of your telescope.
+
 # Help
 To get help run:
 ```
