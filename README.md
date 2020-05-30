@@ -50,7 +50,6 @@ In both modes __all__ INDI properties are returned on poll. If you want to get a
 
 # Help
 To get help run ```python3 /usr/bin/indi-mqtt.py --help``` or ```python3 /usr/bin/indi-mqtt.py -h``` for short
-```
 
 # FAQ
 **Q: I'm not using Astroberry but want to use indi-mqtt. Can I?**
