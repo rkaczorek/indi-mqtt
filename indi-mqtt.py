@@ -232,12 +232,24 @@ class IndiClient(PyIndi.BaseClient):
 			logger.info("Disconnected from INDI server " + str(self.getHost()) + ":" + str(self.getPort()))
 
 def getJSON(devices):
-	# Construct json {device:{property:value, property, value}, device:{property:value, property, value}}
+	# Construct RFC 8259 compliant JSON
+	# {
+	#	device_type:	{device_name: {property:value,property:value}},
+	#	device_type:	{
+	#						device_name:{property:value,property:value},
+	#						device_name:{property:value,property:value}
+	#					}
+	#}
+	
 	observatory_json = json.loads("{}")
+
 	for device in devices:
-		device_properties_json = json.loads("{}")
 		device_type = strDeviceType(device.getDriverInterface())
+		device_name = "_".join( device.getDeviceName().split() ).upper()
+		device_name_json = json.loads("{}")
 		properties = device.getProperties()
+		device_properties_json = json.loads("{}")
+
 		for property in properties:
 			device_property_json = json.loads("{}")
 			property_name = property.getName()
@@ -246,61 +258,70 @@ def getJSON(devices):
 				for t in tpy:
 					device_property_json.update({t.name:t.text})
 					device_properties_json.update({property_name:device_property_json})
-					observatory_json.update({device_type:device_properties_json})
 			elif property.getType()==PyIndi.INDI_NUMBER:
 				tpy = property.getNumber()
 				for t in tpy:
 					device_property_json.update({t.name:t.value})
 					device_properties_json.update({property_name:device_property_json})
-					observatory_json.update({device_type:device_properties_json})
 			elif property.getType()==PyIndi.INDI_SWITCH:
 				tpy = property.getSwitch()
 				for t in tpy:
 					device_property_json.update({t.name:strISState(t.s)})
 					device_properties_json.update({property_name:device_property_json})
-					observatory_json.update({device_type:device_properties_json})
 			elif property.getType()==PyIndi.INDI_LIGHT:
 				tpy = property.getLight()
 				for t in tpy:
 					device_property_json.update({t.name:strIPState(t.s)})
 					device_properties_json.update({property_name:device_property_json})
-					observatory_json.update({device_type:device_properties_json})
 			elif property.getType()==PyIndi.INDI_BLOB:
 				tpy = property.getBLOB()
 				for t in tpy:
 					device_property_json.update({t.name:'<blob ' + str(t.size) + ' bytes>'})
 					device_properties_json.update({property_name:device_property_json})
-					observatory_json.update({device_type:device_properties_json})
+
+
+		device_name_json.update({device_name:device_properties_json})
+
+		# Handle multiple devices of a type
+		if device_type in observatory_json.keys():
+			existing_device_type_json = observatory_json[device_type]
+			existing_device_type_json.update(device_name_json)
+		else:
+			observatory_json.update({device_type:device_name_json})
+
+	if DEBUG:
+		print(json.dumps(observatory_json, indent=4, sort_keys=False))
 
 	return observatory_json
 
 def sendMQTT(observatory_json):
-	if DEBUG:
-		print(json.dumps(observatory_json, indent=4, sort_keys=False))
 	try:
-		# Publish entire json
+		# Publish entire json in json topic e.g. observatory/json
 		if MQTT_JSON:
-			mqttclient.publish(MQTT_ROOT.lower() + "/json", json.dumps(observatory_json))
+			msg = mqttclient.publish(MQTT_ROOT.lower() + "/json", json.dumps(observatory_json))
 
-		# Publish properties and values
-		for device in observatory_json:
-			for property in observatory_json[device]:
-				for key in observatory_json[device][property]:
-					topic = MQTT_ROOT + '/' + device + '/' + property + '/' + key
-					payload = observatory_json[device][property][key]
-					if LIST_TOPICS:
-						print(topic.lower())
-					if DEBUG:
-						print(topic.lower(), payload, sep=" = ")
-					msg = mqttclient.publish(topic.lower(), payload)
+		# Publish each property in separate topic e.g. observatory/telescope/telescope_simulator/connection/connect
+		if not MQTT_JSON:
+			for device_type in observatory_json:
+				for device_name in observatory_json[device_type]:
+					for property in observatory_json[device_type][device_name]:
+						for key in observatory_json[device_type][device_name][property]:
+							topic = MQTT_ROOT + '/' + device_type + '/' + device_name + '/' + property + '/' + key
+							payload = observatory_json[device_type][device_name][property][key]
+							if LIST_TOPICS:
+								print(topic.lower())
+							if DEBUG:
+								print(topic.lower(), payload, sep=" = ")
+							msg = mqttclient.publish(topic.lower(), payload)
+
 		if VERBOSE:
 			if msg.rc == 0:
 				logger.info("Message published to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
 			else:
-				logger.info("Error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
-	except:
+				logger.info("Error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + " (" + msg.rc + ")")
+	except Exception as err:
 		if VERBOSE:
-			logger.info("Unexpected error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + " : " + e)
+			logger.info("Unexpected error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT), err)
 
 def ClientIdMQTT(stringLength=18):
     lettersAndDigits = string.ascii_letters + string.digits
@@ -346,9 +367,9 @@ def onPollMQTT(client, userdata, message):
 			sendMQTT(observatory_json)
 		except KeyboardInterrupt:
 			shutdown()
-		except:
+		except Exception as err:
 			if VERBOSE:
-				logger.info("Unexpected error manual polling INDI server")
+				logger.info("Unexpected error manual polling INDI server", err)
 	else:
 		# Set observatory status
 		mqttclient.publish(MQTT_ROOT.lower() + "/status", "OFF")
@@ -408,9 +429,9 @@ if __name__ == '__main__':
 					time.sleep(10)
 			except KeyboardInterrupt:
 				shutdown()
-			except:
+			except Exception as err:
 				if VERBOSE:
-					logger.info("Unexpected error connecting to INDI server")
+					logger.info("Unexpected error connecting to INDI server", err)
 
 		if indiclient.isServerConnected():
 			# Must wait after INDI connection established
@@ -434,8 +455,8 @@ if __name__ == '__main__':
 					time.sleep(MQTT_POLLING)
 				except KeyboardInterrupt:
 					shutdown()
-				except:
+				except Exception as err:
 					if VERBOSE:
-						logger.info("Unexpected error timed polling INDI server")
+						logger.info("Unexpected error timed polling INDI server", err)
 			else:
 				time.sleep(10)

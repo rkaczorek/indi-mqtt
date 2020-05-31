@@ -1,6 +1,12 @@
+indi-mqtt (1.0.5) buster; urgency=medium
+
+  * Multiple devices per type handled - Closes #6
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Mon, 01 Jun 2020 00:02:06 +0200
+
 indi-mqtt (1.0.4) buster; urgency=medium
 
-  * MQTT manual polling added
+  * MQTT manual polling added - Closes #5
 
  -- Radek Kaczorek <rkaczorek@gmail.com>  Sat, 30 May 2020 22:55:26 +0200
 
