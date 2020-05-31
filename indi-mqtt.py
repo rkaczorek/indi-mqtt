@@ -36,7 +36,6 @@ __version__ = '1.0.4'
 logger = logging.getLogger('indi-mqtt')
 
 # Default options
-VERBOSE = False
 DEBUG = False
 LIST_TOPICS = False
 CONFIG_FILE = "/etc/indi-mqtt.conf"
@@ -57,7 +56,6 @@ MQTT_JSON = False
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", help="configuration file path (default = /etc/indi-mqtt.conf)")
 parser.add_argument("--log", help="log file path (default = stdout)")
-parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 parser.add_argument("-d", "--debug", help="enable debugging", action="store_true")
 parser.add_argument("-l", "--list_topics", help="list available MQTT topics", action="store_true")
 parser.add_argument("-j", "--mqtt_json", help="enable full json on MQTT root/json", action="store_true")
@@ -74,6 +72,7 @@ args = parser.parse_args()
 if args.config:
 	CONFIG_FILE = args.config
 
+# Enable logging
 if args.log:
 	logging.basicConfig(format='%(asctime)s:%(name)s:%(message)s', level=logging.INFO, filename=args.log, filemode='a')
 else:
@@ -82,9 +81,10 @@ else:
 if os.path.isfile(CONFIG_FILE):
 		config = configparser.ConfigParser()
 		config.read(CONFIG_FILE)
-		if 'VERBOSE' in config['DEFAULT']:
-			if config['DEFAULT']['VERBOSE'].lower() == 'true':
-				VERBOSE = True
+		logger.info("Using configuration from " + CONFIG_FILE)
+
+		if 'DEBUG' in config['DEFAULT']:
+			DEBUG = config['INDI']['INDI_HOST']
 		if 'INDI_HOST' in config['INDI']:
 			INDI_HOST = config['INDI']['INDI_HOST']
 		if 'INDI_PORT' in config['INDI']:
@@ -104,11 +104,7 @@ if os.path.isfile(CONFIG_FILE):
 		if 'MQTT_JSON' in config['MQTT']:
 			if config['MQTT']['MQTT_JSON'].lower() == 'true':
 				MQTT_JSON = True
-		if VERBOSE:
-			logger.info("Using configuration from " + CONFIG_FILE)
 
-if args.verbose:
-	VERBOSE = True
 if args.debug:
 	DEBUG = True
 if args.list_topics:
@@ -204,8 +200,7 @@ def term_handler(signum, frame):
 class IndiClient(PyIndi.BaseClient):
 	def __init__(self):
 		super(IndiClient, self).__init__()
-		if VERBOSE:
-			logger.info('Creating an instance of INDI client')
+		logger.info('Creating an instance of INDI client')
 	def newDevice(self, d):
 		pass
 	def newProperty(self, p):
@@ -225,11 +220,9 @@ class IndiClient(PyIndi.BaseClient):
 	def newMessage(self, d, m):
 		pass
 	def serverConnected(self):
-		if VERBOSE:
-			logger.info("Connected to INDI server " + self.getHost() + ":" + str(self.getPort()))
+		logger.info("Connected to INDI server " + self.getHost() + ":" + str(self.getPort()))
 	def serverDisconnected(self, code):
-		if VERBOSE:
-			logger.info("Disconnected from INDI server " + str(self.getHost()) + ":" + str(self.getPort()))
+		logger.info("Disconnected from INDI server " + str(self.getHost()) + ":" + str(self.getPort()))
 
 def getJSON(devices):
 	# Construct RFC 8259 compliant JSON
@@ -313,38 +306,33 @@ def sendMQTT(observatory_json):
 								print(topic.lower(), payload, sep=" = ")
 							msg = mqttclient.publish(topic.lower(), payload)
 
-		if VERBOSE:
-			if msg.rc == 0:
-				logger.info("Message published to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
-			else:
-				logger.info("Error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + " (" + msg.rc + ")")
+		if msg.rc == 0:
+			logger.info("Message published to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+		else:
+			logger.info("Error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + " (" + msg.rc + ")")
 	except Exception as err:
-		if VERBOSE:
-			logger.info("Unexpected error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT), err)
+		logger.info("Unexpected error publishing to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT), err)
 
 def ClientIdMQTT(stringLength=18):
     lettersAndDigits = string.ascii_letters + string.digits
     return ''.join((random.choice(lettersAndDigits) for i in range(stringLength)))
 
 def onConnectMQTT(client, userdata, flags, rc):
-	if VERBOSE:
-		if rc == 0:
-			logger.info("Connected to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
-			if MQTT_POLLING == 0:
-				# Subscribe manual poll
-				mqttclient.subscribe(MQTT_ROOT.lower() + "/poll")
-				mqttclient.message_callback_add(MQTT_ROOT.lower() + "/poll", onPollMQTT)
-				if VERBOSE:
-					logger.info("Subscribed to /poll topic at MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+	if rc == 0:
+		logger.info("Connected to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+		if MQTT_POLLING == 0:
+			# Subscribe manual poll
+			mqttclient.subscribe(MQTT_ROOT.lower() + "/poll")
+			mqttclient.message_callback_add(MQTT_ROOT.lower() + "/poll", onPollMQTT)
+			logger.info("Subscribed to /poll topic at MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 def onDisconnectMQTT(client, userdata, rc):
-	if VERBOSE:
-		if rc == 0:
-			logger.info("Disconnected from MQTT server  " + MQTT_HOST + ":" + str(MQTT_PORT))
-		if rc == 5:
-			logger.info("Access denied to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + ". Check username and password") 
-		else:
-			logger.info("Connection lost to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+	if rc == 0:
+		logger.info("Disconnected from MQTT server  " + MQTT_HOST + ":" + str(MQTT_PORT))
+	if rc == 5:
+		logger.info("Access denied to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT) + ". Check username and password") 
+	else:
+		logger.info("Connection lost to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 def onPollMQTT(client, userdata, message):
 	if DEBUG:
@@ -367,8 +355,7 @@ def onPollMQTT(client, userdata, message):
 		except KeyboardInterrupt:
 			shutdown()
 		except Exception as err:
-			if VERBOSE:
-				logger.info("Unexpected error manual polling INDI server", err)
+			logger.info("Unexpected error manual polling INDI server", err)
 	else:
 		# Set observatory status
 		mqttclient.publish(MQTT_ROOT.lower() + "/status", "OFF")
@@ -379,15 +366,14 @@ signal.signal(signal.SIGTERM, term_handler)
 if __name__ == '__main__':
 	# Init message
 	if MQTT_POLLING > 0:
-		logger.info("Starting in auto refresh mode (every " + MQTT_POLLING + " seconds)")
+		logger.info("Starting in auto refresh mode (every " + str(MQTT_POLLING) + " seconds)")
 	else:
 		logger.info("Starting in manual refresh mode. Publish any message to " + MQTT_ROOT.lower() + "/poll to get INDI properties")
 
 	# Create MQTT client instance
 	mqttclientid = "indi-mqtt-" + ClientIdMQTT()
 	mqttclient = mqtt.Client(client_id = mqttclientid, clean_session = True)
-	if VERBOSE:
-		logger.info("Creating an instance of MQTT client")
+	logger.info("Creating an instance of MQTT client")
 
 	mqttclient.reconnect_delay_set(min_delay=1, max_delay=60)
 	mqttclient.username_pw_set(MQTT_USER, MQTT_PASS)
@@ -402,8 +388,7 @@ if __name__ == '__main__':
 		except KeyboardInterrupt:
 			shutdown()
 		except:
-			if VERBOSE:
-				logger.info("MQTT server at " + MQTT_HOST + ":" + str(MQTT_PORT) + " not available. Retrying in 10 seconds")
+			logger.info("MQTT server at " + MQTT_HOST + ":" + str(MQTT_PORT) + " not available. Retrying in 10 seconds")
 			time.sleep(10)
 			continue
 
@@ -423,14 +408,12 @@ if __name__ == '__main__':
 
 			try:
 				if not indiclient.connectServer():
-					if VERBOSE:
-						logger.info("INDI server at " + indiclient.getHost() + ":" + str(indiclient.getPort()) + " not available. Retrying in 10 seconds")
+					logger.info("INDI server at " + indiclient.getHost() + ":" + str(indiclient.getPort()) + " not available. Retrying in 10 seconds")
 					time.sleep(10)
 			except KeyboardInterrupt:
 				shutdown()
 			except Exception as err:
-				if VERBOSE:
-					logger.info("Unexpected error connecting to INDI server", err)
+				logger.info("Unexpected error connecting to INDI server", err)
 
 		if indiclient.isServerConnected():
 			# Must wait after INDI connection established
@@ -455,7 +438,6 @@ if __name__ == '__main__':
 				except KeyboardInterrupt:
 					shutdown()
 				except Exception as err:
-					if VERBOSE:
-						logger.info("Unexpected error timed polling INDI server", err)
+					logger.info("Unexpected error timed polling INDI server", err)
 			else:
 				time.sleep(10)
