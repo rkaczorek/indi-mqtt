@@ -1,3 +1,9 @@
+indi-mqtt (1.0.5-2) buster; urgency=medium
+
+  * Make topics available independent of JSON
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Mon, 01 Jun 2020 01:50:04 +0200
+
 indi-mqtt (1.0.5-1) buster; urgency=medium
 
   * Hot fixes

@@ -293,18 +293,17 @@ def sendMQTT(observatory_json):
 			msg = mqttclient.publish(MQTT_ROOT.lower() + "/json", json.dumps(observatory_json))
 
 		# Publish each property in separate topic e.g. observatory/telescope/telescope_simulator/connection/connect
-		if not MQTT_JSON:
-			for device_type in observatory_json:
-				for device_name in observatory_json[device_type]:
-					for property in observatory_json[device_type][device_name]:
-						for key in observatory_json[device_type][device_name][property]:
-							topic = MQTT_ROOT + '/' + device_type + '/' + device_name + '/' + property + '/' + key
-							payload = observatory_json[device_type][device_name][property][key]
-							if LIST_TOPICS:
-								print(topic.lower())
-							if DEBUG:
-								print(topic.lower(), payload, sep=" = ")
-							msg = mqttclient.publish(topic.lower(), payload)
+		for device_type in observatory_json:
+			for device_name in observatory_json[device_type]:
+				for property in observatory_json[device_type][device_name]:
+					for key in observatory_json[device_type][device_name][property]:
+						topic = MQTT_ROOT + '/' + device_type + '/' + device_name + '/' + property + '/' + key
+						payload = observatory_json[device_type][device_name][property][key]
+						if LIST_TOPICS:
+							print(topic.lower())
+						if DEBUG:
+							print(topic.lower(), payload, sep=" = ")
+						msg = mqttclient.publish(topic.lower(), payload)
 
 		if msg.rc == 0:
 			logger.info("Message published to MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
