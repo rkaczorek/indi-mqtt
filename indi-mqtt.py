@@ -236,11 +236,11 @@ def getJSON(devices):
 	# {
 	#	device_type:	{device_name: {property:value,property:value}},
 	#	device_type:	{
-	#						device_name:{property:value,property:value},
-	#						device_name:{property:value,property:value}
-	#					}
-	#}
-	
+	#				device_name:{property:value,property:value},
+	#				device_name:{property:value,property:value}
+	#			}
+	# }
+
 	observatory_json = json.loads("{}")
 
 	for device in devices:
@@ -278,7 +278,6 @@ def getJSON(devices):
 				for t in tpy:
 					device_property_json.update({t.name:'<blob ' + str(t.size) + ' bytes>'})
 					device_properties_json.update({property_name:device_property_json})
-
 
 		device_name_json.update({device_name:device_properties_json})
 
