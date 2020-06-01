@@ -1,3 +1,9 @@
+indi-mqtt (1.0.6) buster; urgency=medium
+
+  * Polling time configurable via /poll topic
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Mon, 01 Jun 2020 22:43:50 +0200
+
 indi-mqtt (1.0.5-2) buster; urgency=medium
 
   * Make topics available independent of JSON

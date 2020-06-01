@@ -42,7 +42,7 @@ If you have multiple device of a type, they will be listed as a type's subtopics
 # INDI properties polling
 INDI properties can be refreshed in two modes:
 - __Auto refresh__ with time configurable by MQTT_POLLING variable in /etc/indi-mqtt.conf or invoking command with --mqtt_polling argument
-- __Manual refresh__ by publishing any message to MQTT_ROOT/poll topic (by default it is observatory/poll)
+- __Manual refresh__ by publishing numeric value to MQTT_ROOT/poll topic (by default it is observatory/poll). Any positive value sets refresh time in seconds. 0 means manual polling
 
 In both modes __all__ INDI properties are returned on poll. If you want to get a specific INDI property, subscribe to it using full topic path e.g. ```observatory/telescope/telescope_simulator/telescope_info/telescope_focal_length```
 

@@ -3,7 +3,7 @@ PROJECT(indi-mqtt NONE)
 
 set (VERSION_MAJOR 1)
 set (VERSION_MINOR 0)
-set (VERSION_RELEASE 5)
+set (VERSION_RELEASE 6)
 
 set(BIN_INSTALL_DIR "/usr/bin")
 set(CONFIG_INSTALL_DIR "/etc")
