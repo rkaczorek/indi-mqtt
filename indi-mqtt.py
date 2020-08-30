@@ -202,6 +202,8 @@ def strDeviceType(s):
 		return "SPECTROGRAPH"
 	elif s & (1 << 15):
 		return "AUX"
+	else:
+		return "UNKNOWN"
 
 def shutdown():
 	indiclient.disconnectServer()
