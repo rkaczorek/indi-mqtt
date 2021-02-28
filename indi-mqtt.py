@@ -53,7 +53,7 @@ MQTT_JSON = False
 
 # Init logging
 logger = logging.getLogger('indi-mqtt')
-logging.basicConfig(format='%(asctime)s:%(name)s:%(message)s', level=LOG_LEVEL, stream=sys.stdout)
+logging.basicConfig(format='%(name)s: %(message)s', level=LOG_LEVEL, stream=sys.stdout)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", help="configuration file path (default = /etc/indi-mqtt.conf)")
@@ -338,7 +338,7 @@ def onConnectMQTT(client, userdata, flags, rc):
 		# Subscribe to polling control
 		mqttclient.subscribe(MQTT_ROOT.lower() + "/poll")
 		mqttclient.message_callback_add(MQTT_ROOT.lower() + "/poll", onPollMQTT)
-		logger.info("Subscribed to /poll topic at MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
+		logger.info("Subscribed to " + MQTT_ROOT.lower() + "/poll topic at MQTT server " + MQTT_HOST + ":" + str(MQTT_PORT))
 
 def onDisconnectMQTT(client, userdata, rc):
 	if rc == 0:
