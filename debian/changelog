@@ -1,3 +1,9 @@
+indi-mqtt (1.0.7) buster; urgency=medium
+
+  * Fixes #9
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Mon, 01 Mar 2021 02:24:36 +0100
+
 indi-mqtt (1.0.6) buster; urgency=medium
 
   * Polling time configurable via /poll topic
