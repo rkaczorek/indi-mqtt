@@ -1,3 +1,9 @@
+indi-mqtt (1.0.8) buster; urgency=medium
+
+  * Upstream synch
+
+ -- Radek Kaczorek <rkaczorek@gmail.com>  Sat, 26 Jun 2021 00:52:02 +0200
+
 indi-mqtt (1.0.7) buster; urgency=medium
 
   * Fixes #9
