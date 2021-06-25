@@ -8,6 +8,6 @@ Homepage: https://github.com/rkaczorek/indi-mqtt
 
 Package: indi-mqtt
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, python3-paho-mqtt, python3-simplejson, swig, libnova-dev, libcfitsio-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3-paho-mqtt, python3-simplejson, swig, libnova-dev, libcfitsio-dev, libindi-dev
 Recommends: mosquitto, indi-bin
 Description: MQTT publisher for INDI server
