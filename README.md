@@ -1,6 +1,8 @@
 # indi-mqtt
 indi-mqtt is MQTT publisher for INDI server. It reads properties of INDI devices and publishes them using MQTT topics.
 
+[NOTE] Due to the recent changes in pyindi-client and annouced end of life of pyindi-client library, this project is not maintained anymore. It will be replaced by native c++ driver soon.
+
 # Installation
 Use git to clone source files or download and install indi-mqtt debian package from https://www.astroberry.io/repo/pool/main/i/indi-mqtt/
 ```
